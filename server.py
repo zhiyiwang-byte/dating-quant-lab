@@ -14,6 +14,13 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "anon_cohort.db"
 PORT = 8765
 
+VALID_PERSONAS = {
+    "务实抗风险派",
+    "情绪&颜控派",
+    "智性恋慕强派",
+    "均衡六边形派",
+}
+
 VALID_BUCKETS = {
     "severe_down",   # ΔZ <= -2σ (严重向下兼容)
     "mod_down",      # -2σ < ΔZ <= -1σ (明显向下兼容)
@@ -148,6 +155,13 @@ class AnonQuantHandler(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/stats"):
             self._send_json(aggregate_stats())
             return
+        if self.path == "/healthz":
+            self._send_json({"ok": True})
+            return
+        if self.path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
         return super().do_GET()
 
     def do_POST(self):
@@ -157,14 +171,23 @@ class AnonQuantHandler(SimpleHTTPRequestHandler):
             try:
                 payload = json.loads(body)
                 # Strict schema sanitizer: reject or strip any raw personal scores
-                anon_id = str(payload.get("anon_id", ""))[:64]
-                persona = str(payload.get("persona_cluster", "均衡六边形派"))[:32]
+                anon_id = "".join(c for c in str(payload.get("anon_id", "")) if c.isalnum() or c in "_-")[:64]
+                raw_persona = str(payload.get("persona_cluster", "均衡六边形派"))
+                persona = raw_persona if raw_persona in VALID_PERSONAS else "均衡六边形派"
                 bucket = str(payload.get("compat_bucket", "balanced"))
                 if bucket not in VALID_BUCKETS:
                     bucket = "balanced"
 
                 raw_w = payload.get("weights", {})
-                clean_w = {d: round(float(raw_w.get(d, 12.5)), 1) for d in DIM_IDS}
+                clean_w = {}
+                for d in DIM_IDS:
+                    try:
+                        val = float(raw_w.get(d, 12.5))
+                        if val != val:  # NaN check
+                            val = 12.5
+                    except (TypeError, ValueError):
+                        val = 12.5
+                    clean_w[d] = round(max(0.0, min(100.0, val)), 1)
 
                 raw_ab = payload.get("ab_votes", {})
                 clean_ab = {

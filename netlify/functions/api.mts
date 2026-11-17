@@ -1,6 +1,13 @@
 import type { Config, Context } from "@netlify/functions";
 import { getDeployStore } from "@netlify/blobs";
 
+const VALID_PERSONAS = new Set([
+  "务实抗风险派",
+  "情绪&颜控派",
+  "智性恋慕强派",
+  "均衡六边形派",
+]);
+
 const VALID_BUCKETS = new Set([
   "severe_down",
   "mod_down",
@@ -163,13 +170,16 @@ export default async (req: Request, _context: Context) => {
       return Response.json({ error: "Missing anon_id" }, { status: 400 });
     }
 
-    const persona = String(body?.persona_cluster || "均衡六边形派").slice(0, 32);
+    const rawPersona = String(body?.persona_cluster || "均衡六边形派");
+    const persona = VALID_PERSONAS.has(rawPersona) ? rawPersona : "均衡六边形派";
     const rawBucket = String(body?.compat_bucket || "balanced");
     const bucket = VALID_BUCKETS.has(rawBucket) ? rawBucket : "balanced";
 
     const cleanWeights: Record<string, number> = {};
     for (const d of DIM_IDS) {
-      cleanWeights[d] = Number(Number(body?.weights?.[d] ?? 12.5).toFixed(1));
+      const parsed = Number(body?.weights?.[d]);
+      const bounded = Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 12.5;
+      cleanWeights[d] = Number(bounded.toFixed(1));
     }
 
     const cleanAb: Record<string, string> = {};

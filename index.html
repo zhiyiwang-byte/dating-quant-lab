@@ -97,30 +97,30 @@
             <div class="p-3.5 rounded-lg bg-[var(--secondary)] border border-[var(--border)]">
               <div class="text-xs text-[var(--muted-foreground)] font-medium">我的综合效用 (Self)</div>
               <div class="flex items-baseline gap-2 mt-1">
-                <span id="self-score-display" class="text-2xl font-bold">7.15</span>
-                <span id="self-z-display" class="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--card)]">+0.83σ (前20%)</span>
+                <span id="self-score-display" class="text-2xl font-bold">—</span>
+                <span id="self-z-display" class="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--card)]">待填表 0/8</span>
               </div>
-              <div id="self-log-raw" class="text-xs text-[var(--muted-foreground)] mt-1">ln(U) = 1.97 · 无底线触发</div>
+              <div id="self-log-raw" class="text-xs text-[var(--muted-foreground)] mt-1">完成 8 个维度的客观填表后生成</div>
             </div>
 
             <div class="p-3.5 rounded-lg bg-[var(--secondary)] border border-[var(--border)]">
               <div class="text-xs text-[var(--muted-foreground)] font-medium">评估对象效用 (Candidate)</div>
               <div class="flex items-baseline gap-2 mt-1">
-                <span id="cand-score-display" class="text-2xl font-bold">6.35</span>
-                <span id="cand-z-display" class="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--card)]">+0.13σ (前45%)</span>
+                <span id="cand-score-display" class="text-2xl font-bold">—</span>
+                <span id="cand-z-display" class="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--card)]">待填表 0/8</span>
               </div>
-              <div id="cand-log-raw" class="text-xs text-[var(--muted-foreground)] mt-1">ln(U) = 1.85 · 无底线触发</div>
+              <div id="cand-log-raw" class="text-xs text-[var(--muted-foreground)] mt-1">完成 8 个维度的客观填表后生成</div>
             </div>
           </div>
 
           <div id="verdict-box" class="p-4 rounded-lg border border-[var(--border)] bg-[var(--secondary)] space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">标准差兼容度判定 (ΔZ = Z_对方 - Z_我)</span>
-              <span id="delta-z-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">ΔZ = -0.70σ</span>
+              <span id="delta-z-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">ΔZ = —</span>
             </div>
-            <div id="verdict-title" class="text-base font-bold">⚖️ 轻度向下兼容（0.5σ ~ 1.0σ 区间）</div>
+            <div id="verdict-title" class="text-base font-bold">⏳ 等待双方完成客观填表</div>
             <p id="verdict-desc" class="text-xs text-[var(--muted-foreground)] leading-relaxed">
-              对方整体分位略低于你，但处于可接受博弈半径内。建议核查对方在你最高权重维度上是否有长板补偿。
+              「我」与「对方」各自完成 8 个维度的填表后，自动生成标准差兼容度判定。
             </p>
           </div>
         </div>
@@ -143,13 +143,13 @@
       </div>
 
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="text-xs font-semibold text-[var(--muted-foreground)]">当前编辑视角：</span>
           <button onclick="setEditTarget('cand')" id="btn-edit-cand" class="tab-btn-active px-3 py-1.5 rounded-md text-xs font-semibold transition-all">
-            正在给「评估对象」打分
+            正在给「评估对象」打分 · <span id="progress-cand">0/8</span>
           </button>
           <button onclick="setEditTarget('self')" id="btn-edit-self" class="px-3 py-1.5 rounded-md text-xs font-semibold bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all">
-            切换给「我自己」打分
+            切换给「我自己」打分 · <span id="progress-self">0/8</span>
           </button>
         </div>
 
@@ -166,6 +166,9 @@
           </button>
           <button onclick="applyPresetProfile('hexagon')" class="px-2.5 py-1 rounded text-xs bg-[var(--secondary)] hover:opacity-80 border border-[var(--border)]">
             💎 7.5分六边形同温层
+          </button>
+          <button onclick="resetCurrentTarget()" class="px-2.5 py-1 rounded text-xs bg-[var(--secondary)] hover:opacity-80 border border-[var(--border)] text-[var(--muted-foreground)]">
+            🧹 清空当前视角
           </button>
         </div>
       </div>
@@ -487,7 +490,7 @@
         desc: '五官颜值、身材管理、年龄精力状态与基础遗传健康度',
         anchors: '1分:严重劝退 | 5分:路人顺眼整洁 | 8分:出众亮眼自律 | 10分:万里挑一顶配',
         quant: [
-          { q: '路人视角的颜值自评（十分制）', w: 0.55, options: [
+          { q: '路人视角的颜值评价（十分制）', w: 0.55, options: [
             { label: '1~2分（明显低于平均）', score: 2 },
             { label: '3~4分（略低于平均）', score: 4 },
             { label: '5分（平均路人）', score: 5.5 },
@@ -545,14 +548,14 @@
         desc: '抗压能力、低内耗、冲突解决机制（无冷暴力/能提供温暖情绪支撑）',
         anchors: '1分:易怒/冷暴力 | 5分:情绪正常平稳 | 8分:高共情治愈系 | 10分:定海神针级稳定',
         quant: [
-          { q: '发生冲突时，对方的典型表现', w: 0.55, options: [
+          { q: '发生冲突时的典型表现', w: 0.55, options: [
             { label: '冷暴力/拉黑/威胁分手', score: 1.5 },
             { label: '激烈争吵、翻旧账', score: 3.5 },
             { label: '能就事论事，偶尔情绪化', score: 6.5 },
             { label: '先处理情绪，再解决问题', score: 8.5 },
             { label: '几乎不红脸，主动安抚', score: 9.5 }
           ]},
-          { q: '遇到压力或挫折时，对方通常', w: 0.45, options: [
+          { q: '遇到压力或挫折时的通常反应', w: 0.45, options: [
             { label: '迁怒身边人/摔东西', score: 1.5 },
             { label: '情绪低落好几天，需要人哄', score: 4.5 },
             { label: '自我消化较快，不影响相处', score: 7 },
@@ -625,6 +628,8 @@
     let currentEditTarget = 'cand';
     const quantAnswers = { self: {}, cand: {} };
     const scoreTouched = { self: {}, cand: {} };
+    const scoreSource = { self: {}, cand: {} };
+    const INITIAL_DEFAULTS = Object.fromEntries(DIMENSIONS.map(d => [d.id, { self: d.selfScore, cand: d.candScore }]));
     let abStepIndex = 0;
     let abHistoryCount = 0;
     const userAbVotes = { "0": "B", "1": "B", "2": "B", "3": "A", "4": "B", "5": "A" };
@@ -885,16 +890,31 @@
 
     function renderDimensionsCards() {
       const container = document.getElementById('dimensions-container');
+      const activeEl = document.activeElement;
+      const focusKey = (activeEl && activeEl.dataset && activeEl.dataset.dim && activeEl.dataset.qi !== undefined)
+        ? { dim: activeEl.dataset.dim, qi: activeEl.dataset.qi }
+        : null;
       const normW = getNormalizedWeights();
 
       container.innerHTML = DIMENSIONS.map((d, idx) => {
         const activeVal = currentEditTarget === 'self' ? d.selfScore : d.candScore;
         const wPct = (normW[d.id] * 100).toFixed(1);
         const logVal = Math.log(activeVal).toFixed(2);
-        const isShortboard = activeVal < 4.5;
-        const qAnswers = (quantAnswers[currentEditTarget] || {})[d.id] || [];
-        const qRes = computeQuantScore(d.id);
         const touched = !!scoreTouched[currentEditTarget][d.id];
+        const source = scoreSource[currentEditTarget][d.id] || '';
+        const isShortboard = touched && activeVal < 4.5;
+        const qAnswers = (quantAnswers[currentEditTarget] || {})[d.id] || [];
+        const qRes = computeQuantScore(d.id, currentEditTarget);
+
+        let hintText = '回答上方问题后自动换算打分';
+        if (qRes.answered > 0) {
+          const partialNote = qRes.answered < qRes.total ? `（已答 ${qRes.answered}/${qRes.total} 题 · 部分均值写入）` : `（${qRes.answered}/${qRes.total} 题 · 已自动写入评分）`;
+          hintText = `换算结果：<span class="font-bold text-[var(--foreground)]">${qRes.score.toFixed(1)} 分</span>${partialNote}`;
+        } else if (touched && source === 'preset') {
+          hintText = `⚡ 当前使用快速预设分值（<span class="font-bold text-[var(--foreground)]">${activeVal.toFixed(1)} 分</span>），作答上方问卷可覆盖`;
+        } else if (touched && source === 'hash') {
+          hintText = `🔗 当前为分享链接载入分值（<span class="font-bold text-[var(--foreground)]">${activeVal.toFixed(1)} 分</span>），作答上方问卷可覆盖`;
+        }
 
         return `
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm flex flex-col justify-between space-y-2.5">
@@ -909,8 +929,8 @@
                 <p class="text-xs text-[var(--muted-foreground)] mt-0.5">${d.desc}</p>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-xl font-bold">${activeVal.toFixed(1)}</div>
-                <div class="text-xs text-[var(--muted-foreground)]">ln(x)=${logVal}</div>
+                <div class="text-xl font-bold">${touched ? activeVal.toFixed(1) : '—'}</div>
+                <div class="text-xs text-[var(--muted-foreground)]">${touched ? `ln(x)=${logVal}` : 'ln(x)=—'}</div>
                 ${touched ? '' : '<div class="text-xs text-amber-500 font-medium mt-0.5">待填表</div>'}
               </div>
             </div>
@@ -920,26 +940,29 @@
               ${d.quant.map((q, qi) => `
               <div class="space-y-1">
                 <div class="text-xs font-medium">${qi + 1}. ${q.q}</div>
-                <select onchange="answerQuant('${d.id}', ${qi}, this.value)" class="w-full text-xs p-1.5 rounded bg-[var(--secondary)] border border-[var(--border)] focus:outline-none">
+                <select data-dim="${d.id}" data-qi="${qi}" onchange="answerQuant('${d.id}', ${qi}, this.value)" class="w-full text-xs p-1.5 rounded bg-[var(--secondary)] border border-[var(--border)] focus:outline-none">
                   <option value="">— 请选择 —</option>
                   ${q.options.map((o, oi) => `<option value="${oi}"${qAnswers[qi] === oi ? ' selected' : ''}>${o.label} → ${o.score}分</option>`).join('')}
                 </select>
               </div>`).join('')}
               <div class="text-xs text-[var(--muted-foreground)] pt-0.5">
-                ${qRes.answered
-                  ? `换算结果：<span class="font-bold text-[var(--foreground)]">${qRes.score.toFixed(1)} 分</span>（${qRes.answered}/${qRes.total} 题 · 已自动写入评分）`
-                  : '回答上方问题后自动换算打分'}
+                ${hintText}
               </div>
             </div>
           </div>
         `;
       }).join('');
+
+      if (focusKey) {
+        const nextFocus = container.querySelector(`select[data-dim="${focusKey.dim}"][data-qi="${focusKey.qi}"]`);
+        if (nextFocus) nextFocus.focus();
+      }
     }
 
-    function computeQuantScore(dimId) {
+    function computeQuantScore(dimId, role = currentEditTarget) {
       const d = DIMENSIONS.find(item => item.id === dimId);
       const total = d.quant.length;
-      const answers = (quantAnswers[currentEditTarget] || {})[dimId] || [];
+      const answers = (quantAnswers[role] || {})[dimId] || [];
       let acc = 0, wSum = 0, answered = 0;
       d.quant.forEach((q, qi) => {
         const ai = answers[qi];
@@ -966,15 +989,37 @@
       if (!quantAnswers[currentEditTarget]) quantAnswers[currentEditTarget] = {};
       if (!quantAnswers[currentEditTarget][dimId]) quantAnswers[currentEditTarget][dimId] = [];
       quantAnswers[currentEditTarget][dimId][qIdx] = val === '' ? null : parseInt(val, 10);
-      const res = computeQuantScore(dimId);
+      const res = computeQuantScore(dimId, currentEditTarget);
+      const d = DIMENSIONS.find(item => item.id === dimId);
       if (res.answered > 0) {
-        const d = DIMENSIONS.find(item => item.id === dimId);
         if (currentEditTarget === 'self') {
           d.selfScore = res.score;
         } else {
           d.candScore = res.score;
         }
         scoreTouched[currentEditTarget][dimId] = true;
+        scoreSource[currentEditTarget][dimId] = 'quant';
+      } else {
+        delete scoreTouched[currentEditTarget][dimId];
+        delete scoreSource[currentEditTarget][dimId];
+        if (d && INITIAL_DEFAULTS[dimId]) {
+          if (currentEditTarget === 'self') d.selfScore = INITIAL_DEFAULTS[dimId].self;
+          else d.candScore = INITIAL_DEFAULTS[dimId].cand;
+        }
+      }
+      recalculateAll();
+    }
+
+    function resetCurrentTarget() {
+      quantAnswers[currentEditTarget] = {};
+      scoreTouched[currentEditTarget] = {};
+      scoreSource[currentEditTarget] = {};
+      DIMENSIONS.forEach(d => {
+        if (currentEditTarget === 'self') d.selfScore = INITIAL_DEFAULTS[d.id].self;
+        else d.candScore = INITIAL_DEFAULTS[d.id].cand;
+      });
+      if (currentEditTarget === 'cand') {
+        document.querySelectorAll('.veto-check').forEach(chk => { chk.checked = false; });
       }
       recalculateAll();
     }
@@ -1155,17 +1200,22 @@
 
       document.getElementById('dashboard-ab-bars').innerHTML = AB_DILEMMAS.map((q, idx) => {
         const stat = cohortStats.ab_Choice_stats[String(idx)] || { A: 1, B: 1, tie: 0 };
-        const sumAB = (stat.A + stat.B + stat.tie) || 1;
-        const pctA = Math.round((stat.A / sumAB) * 100);
-        const pctB = 100 - pctA;
+        const sumAll = (stat.A + stat.B + (stat.tie || 0)) || 1;
+        const pctA = Math.round((stat.A / sumAll) * 100);
+        const pctTie = (stat.tie || 0) > 0 ? Math.round((stat.tie / sumAll) * 100) : 0;
+        const pctB = Math.max(0, 100 - pctA - pctTie);
+        const summaryText = pctTie > 0
+          ? `选A ${pctA}% · 平局 ${pctTie}% · 选B ${pctB}%`
+          : `选A ${pctA}% vs 选B ${pctB}%`;
         return `
           <div class="space-y-1">
             <div class="flex justify-between text-xs">
               <span class="font-medium">${q.shortTitle}</span>
-              <span class="text-[var(--muted-foreground)]">选A ${pctA}% vs 选B ${pctB}%</span>
+              <span class="text-[var(--muted-foreground)]">${summaryText}</span>
             </div>
             <div class="w-full h-2.5 rounded-full bg-[var(--secondary)] overflow-hidden flex">
               <div style="width:${pctA}%; background:#3b82f6" class="h-full" title="候选人A"></div>
+              ${pctTie > 0 ? `<div style="width:${pctTie}%; background:#94a3b8" class="h-full" title="平局"></div>` : ''}
               <div style="width:${pctB}%; background:#f97316" class="h-full" title="候选人B"></div>
             </div>
           </div>
@@ -1236,8 +1286,15 @@
     function recalculateAll() {
       const selfRes = computeUtility('self');
       const candRes = computeUtility('cand');
-      const selfComplete = isRoleComplete('self');
-      const candComplete = isRoleComplete('cand');
+      const selfCount = filledCount('self');
+      const candCount = filledCount('cand');
+      const selfComplete = selfCount === DIMENSIONS.length;
+      const candComplete = candCount === DIMENSIONS.length;
+
+      const progCand = document.getElementById('progress-cand');
+      const progSelf = document.getElementById('progress-self');
+      if (progCand) progCand.textContent = `${candCount}/${DIMENSIONS.length}`;
+      if (progSelf) progSelf.textContent = `${selfCount}/${DIMENSIONS.length}`;
 
       if (selfComplete) {
         document.getElementById('self-score-display').textContent = selfRes.geomScore.toFixed(2);
@@ -1288,7 +1345,12 @@
 
       if (!bothComplete) {
         vTitle.textContent = '⏳ 等待双方完成客观填表';
-        vDesc.textContent = `「我」与「对方」各自完成 8 个维度的填表后，自动生成标准差兼容度判定（当前进度：我 ${filledCount('self')}/8 · 对方 ${filledCount('cand')}/8）。`;
+        const nextHint = candComplete && !selfComplete
+          ? '「评估对象」已完成，请点击下方「切换给『我自己』打分」继续填表（或一键预设）。'
+          : (!candComplete && selfComplete
+            ? '「我自己」已完成，请点击下方「正在给『评估对象』打分」继续填表。'
+            : '「我」与「对方」各自完成 8 个维度的填表后，自动生成标准差兼容度判定。');
+        vDesc.textContent = `${nextHint}（当前进度：我 ${selfCount}/8 · 对方 ${candCount}/8）`;
       } else if (candRes.vetoTriggered) {
         vTitle.textContent = '🛑 底线风控一票否决（禁止向下兼容）';
         vDesc.textContent = '候选人触发了硬性底线风控项（乘数因子 I=0）。根据对数效用模型，无论其他维度分数多高，综合效用直接归零。';
@@ -1348,6 +1410,7 @@
 
       const p = presets[presetKey];
       if (!p) return;
+      quantAnswers[currentEditTarget] = {};
       DIMENSIONS.forEach(d => {
         if (currentEditTarget === 'self') {
           d.selfScore = p[d.id];
@@ -1355,6 +1418,7 @@
           d.candScore = p[d.id];
         }
         scoreTouched[currentEditTarget][d.id] = true;
+        scoreSource[currentEditTarget][d.id] = 'preset';
       });
       recalculateAll();
     }
@@ -1512,10 +1576,17 @@
     }
 
     function copyShareUrl() {
+      const vetoFlags = Array.from(document.querySelectorAll('.veto-check')).map(chk => chk.checked ? 1 : 0);
       const state = {
         w: DIMENSIONS.map(d => d.weight),
         s: DIMENSIONS.map(d => d.selfScore),
-        c: DIMENSIONS.map(d => d.candScore)
+        c: DIMENSIONS.map(d => d.candScore),
+        st: {
+          s: DIMENSIONS.map(d => scoreTouched.self[d.id] ? 1 : 0),
+          c: DIMENSIONS.map(d => scoreTouched.cand[d.id] ? 1 : 0)
+        },
+        qa: quantAnswers,
+        v: vetoFlags
       };
       const hash = '#state=' + encodeURIComponent(JSON.stringify(state));
       const fullUrl = window.location.href.split('#')[0] + hash;
@@ -1531,11 +1602,38 @@
         if (window.location.hash.startsWith('#state=')) {
           const raw = decodeURIComponent(window.location.hash.slice(7));
           const state = JSON.parse(raw);
+          if (state.qa && typeof state.qa === 'object') {
+            ['self', 'cand'].forEach(role => {
+              if (state.qa[role] && typeof state.qa[role] === 'object') {
+                quantAnswers[role] = state.qa[role];
+              }
+            });
+          }
+          if (Array.isArray(state.v)) {
+            document.querySelectorAll('.veto-check').forEach((chk, i) => {
+              chk.checked = !!state.v[i];
+            });
+          }
           if (state.w && state.s && state.c) {
+            const hasExplicitTouch = state.st && Array.isArray(state.st.s) && Array.isArray(state.st.c);
             DIMENSIONS.forEach((d, i) => {
               if (state.w[i] !== undefined) d.weight = state.w[i];
-              if (state.s[i] !== undefined) d.selfScore = state.s[i];
-              if (state.c[i] !== undefined) d.candScore = state.c[i];
+              if (state.s[i] !== undefined) {
+                d.selfScore = state.s[i];
+                if (!hasExplicitTouch || state.st.s[i]) {
+                  scoreTouched.self[d.id] = true;
+                  const qaSelf = quantAnswers.self[d.id] || [];
+                  scoreSource.self[d.id] = qaSelf.some(v => v !== null && v !== undefined) ? 'quant' : 'hash';
+                }
+              }
+              if (state.c[i] !== undefined) {
+                d.candScore = state.c[i];
+                if (!hasExplicitTouch || state.st.c[i]) {
+                  scoreTouched.cand[d.id] = true;
+                  const qaCand = quantAnswers.cand[d.id] || [];
+                  scoreSource.cand[d.id] = qaCand.some(v => v !== null && v !== undefined) ? 'quant' : 'hash';
+                }
+              }
             });
           }
         }
